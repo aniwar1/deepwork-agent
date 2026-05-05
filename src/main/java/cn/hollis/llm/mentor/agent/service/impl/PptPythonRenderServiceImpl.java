@@ -173,7 +173,7 @@ public class PptPythonRenderServiceImpl implements PptPythonRenderService {
      * 获取Python脚本路径
      */
     private String getPythonScriptPath() {
-        return "D:\\LLMentor\\LLMentor\\agent\\dodo-agent\\src\\main\\resources\\python\\render_ppt.py";
+        return "D:\\LLMentor\\LLMentor\\agent\\deepwork-agent\\src\\main\\resources\\python\\render_ppt.py";
     }
 
     /**

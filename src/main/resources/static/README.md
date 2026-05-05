@@ -1,11 +1,11 @@
-# 豆豆 - AI 智能助手前端
+# 深度工作 - AI 智能助手前端
 
 一个基于 Vue 3 的 AI 聊天助手前端应用，支持多智能体对话、文件问答、PPT 生成和深度研究等功能。
 
 ## 项目结构
 
 ```
-dodo-agent-frontend/
+deepwork-agent-frontend/
 ├── index.html          # 主 HTML 文件
 ├── README.md           # 项目说明文档（本文件）
 ├── config.js           # 配置文件 - 修改后端地址

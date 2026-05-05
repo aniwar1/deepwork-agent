@@ -24,7 +24,7 @@ spring:
           dimmension: 1024
 
   datasource:
-    url: jdbc:mysql://127.0.0.1:3306/dodo?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8 # 记得改成你自己的
+    url: jdbc:mysql://127.0.0.1:3306/deepwork?useUnicode=true&characterEncoding=utf8&useSSL=false&serverTimezone=GMT%2B8 # 记得改成你自己的
     username: root # 记得改成你自己的
     password: root # 记得改成你自己的
     driver-class-name: com.mysql.cj.jdbc.Driver

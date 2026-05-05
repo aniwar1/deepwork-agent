@@ -4,10 +4,10 @@ import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 @SpringBootApplication
-public class DodoAgentApplication {
+public class DeepworkAgentApplication {
 
 	public static void main(String[] args) {
-		SpringApplication.run(DodoAgentApplication.class, args);
+		SpringApplication.run(DeepworkAgentApplication.class, args);
 	}
 
 }
