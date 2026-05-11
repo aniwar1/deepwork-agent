@@ -2,6 +2,8 @@ package cn.hollis.llm.mentor.agent.service;
 
 import cn.hollis.llm.mentor.agent.entity.record.FileInfo;
 import cn.hollis.llm.mentor.agent.service.impl.FileInfoServiceImpl;
+import cn.hollis.llm.mentor.agent.splitter.ChunkMetadataEnricher;
+import cn.hollis.llm.mentor.agent.splitter.DynamicChunkStrategyFactory;
 import cn.hollis.llm.mentor.agent.splitter.OverlapParagraphTextSplitter;
 import jakarta.annotation.PostConstruct;
 import lombok.extern.slf4j.Slf4j;
@@ -141,7 +143,7 @@ public class FileManageService {
                     if (isLargeFile(fullText)) {
                         log.info("检测到大文件，开始向量化处理: fileId={}, 全量文本长度: {}", fileId, fullText.length());
                         try {
-                            processLargeFileEmbedding(fileId, fullText);
+                            processLargeFileEmbedding(fileId, fullText, fileType);
                             fileInfo.setEmbed(1);
                             fileInfoService.updateFileInfo(fileInfo);
                             log.info("大文件向量化完成: fileId={}", fileId);
@@ -426,28 +428,31 @@ public class FileManageService {
      *
      * @param fileId 文件ID
      * @param text   文本内容
+     * @param fileType 文件类型
      */
-    private void processLargeFileEmbedding(String fileId, String text) {
-        log.info("开始处理大文件向量化: fileId={}, 文本长度: {}", fileId, text.length());
+    private void processLargeFileEmbedding(String fileId, String text, String fileType) {
+        log.info("开始处理大文件向量化: fileId={}, 文本长度={}, 文件类型={}", fileId, text.length(), fileType);
 
-        // 1. 创建文档
+        // 1. 根据文件类型动态选择切分策略
+        DynamicChunkStrategyFactory.ChunkStrategy strategy = DynamicChunkStrategyFactory.getStrategy(fileType);
+        int chunkSize = strategy.chunkSize();
+        int overlap = strategy.overlap();
+
+        // 2. 创建文档
         Document document = new Document(text);
         List<Document> documents = List.of(document);
 
-        // 2. 切分文档（使用500字符，50重叠）
-        OverlapParagraphTextSplitter splitter = new OverlapParagraphTextSplitter(500, 50);
+        // 3. 切分文档
+        OverlapParagraphTextSplitter splitter = new OverlapParagraphTextSplitter(chunkSize, overlap);
         List<Document> chunks = splitter.apply(documents);
-        log.info("文档切分完成: fileId={}, 切分数量: {}", fileId, chunks.size());
+        log.info("文档切分完成: fileId={}, 切分数量={}, chunkSize={}, overlap={}",
+                fileId, chunks.size(), chunkSize, overlap);
 
-        // 3. 为每个切分添加元数据
-        for (int i = 0; i < chunks.size(); i++) {
-            Document chunk = chunks.get(i);
-            chunk.getMetadata().put("fileid", fileId);
-            chunk.getMetadata().put("chunkId", i);
-        }
+        // 4. 元数据丰富化：添加 chunkId, totalChunks, prev_summary, next_summary
+        ChunkMetadataEnricher.enrich(chunks, fileId);
 
-        // 4. 向量化并存储
+        // 5. 向量化并存储
         embeddingService.embedAndStore(chunks);
-        log.info("大文件向量化存储完成: fileId={}, 切分数量: {}", fileId, chunks.size());
+        log.info("大文件向量化存储完成: fileId={}, 切分数量={}", fileId, chunks.size());
     }
 }
