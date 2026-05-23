@@ -203,6 +203,12 @@ createApp({
                     return;
                 }
 
+                // Orchestrator 模式：文件直接随请求发送，不预上传
+                if (selectedAgent.value === 'orchestrator') {
+                    isUploading.value = false;
+                    return;
+                }
+
                 const result = await APP_API.uploadFile(backendUrl.value, file);
                 uploadedFileId.value = result.fileId;
             } catch (error) {
@@ -306,15 +312,41 @@ createApp({
                 abortController = new AbortController();
                 const signal = abortController.signal;
 
-                const response = await fetch(url.toString(), {
-                    method: 'GET',
-                    headers: {
-                        'Accept': 'text/event-stream',
-                        'Cache-Control': 'no-cache',
-                        'Connection': 'keep-alive'
-                    },
-                    signal: signal
-                });
+                const isOrchestratorFile = selectedAgent.value === 'orchestrator' && hasFile;
+
+                let response;
+                if (isOrchestratorFile) {
+                    // Orchestrator + 文件：POST multipart/form-data
+                    const formData = new FormData();
+                    formData.append('query', message || '请分析这个文件');
+                    formData.append('conversationId', currentChatId.value);
+                    if (fileIdToSend) {
+                        formData.append('fileId', fileIdToSend);
+                    }
+                    formData.append('file', fileToSend);
+
+                    response = await fetch(APP_API.getOrchestratorUrl(backendUrl.value, selectedAgent.value), {
+                        method: 'POST',
+                        body: formData,
+                        headers: {
+                            'Accept': 'text/event-stream',
+                            'Cache-Control': 'no-cache',
+                            'Connection': 'keep-alive'
+                        },
+                        signal: signal
+                    });
+                } else {
+                    // 其他模式：GET
+                    response = await fetch(url.toString(), {
+                        method: 'GET',
+                        headers: {
+                            'Accept': 'text/event-stream',
+                            'Cache-Control': 'no-cache',
+                            'Connection': 'keep-alive'
+                        },
+                        signal: signal
+                    });
+                }
 
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);

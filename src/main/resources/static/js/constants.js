@@ -7,6 +7,7 @@
 const AGENTS = [
     { id: 'chat', name: '对话助手', icon: '💬' },
     { id: 'file', name: '文件问答', icon: '📁' },
+    { id: 'orchestrator', name: '智能编排', icon: '🧠' },
     { id: 'ppt', name: 'PPT生成', icon: '📊' },
     { id: 'deep', name: '深度研究', icon: '🔬' }
 ];

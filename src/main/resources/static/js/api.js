@@ -143,6 +143,11 @@ const getStreamChatUrl = (backendUrl, selectedAgent, hasFile) => {
     return `${backendUrl}/agent/chat/stream`;
 };
 
+// 获取流式编排器 API URL（支持文件上传）
+const getOrchestratorUrl = (backendUrl, selectedAgent) => {
+    return `${backendUrl}/agent/orchestrator/file/stream`;
+};
+
 // 停止流式请求
 const stopStream = async (backendUrl, conversationId) => {
     try {
@@ -166,5 +171,6 @@ window.APP_API = {
     deleteChat,
     uploadFile,
     getStreamChatUrl,
+    getOrchestratorUrl,
     stopStream
 };

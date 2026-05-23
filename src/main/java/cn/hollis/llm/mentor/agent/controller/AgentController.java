@@ -20,10 +20,8 @@ import org.springframework.ai.tool.ToolCallback;
 import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 import reactor.core.publisher.Flux;
 
 import java.net.http.HttpRequest;
@@ -53,6 +51,9 @@ public class AgentController implements InitializingBean {
 
     @Autowired
     private FileContentService fileContentService;
+
+    @Autowired(required = false)
+    private cn.hollis.llm.mentor.agent.agent.a2a.OrchestratorAgent orchestratorAgent;
 
     /**
      * Tavily 搜索引擎 API Key
@@ -144,6 +145,40 @@ public class AgentController implements InitializingBean {
             log.error("处理PPT Builder请求时发生错误: ", e);
             return Flux.error(e);
         }
+    }
+
+    @GetMapping(value = "/orchestrator/stream", produces = "text/event-stream;charset=UTF-8")
+    @Operation(summary = "编排器问答（支持文件打断）",
+               description = "接收用户查询（含可选文件），编排 Agent 处理，支持深度思考中文件打断场景")
+    public Flux<String> orchestratorStream(
+            @RequestParam(required = true) String query,
+            @RequestParam(required = true) String conversationId
+    ) {
+        log.info("收到编排器请求: query={}, conversationId={}", query, conversationId);
+        if (orchestratorAgent == null) {
+            log.error("OrchestratorAgent 未初始化，请检查 A2A 相关依赖是否正确引入");
+            return Flux.error(new IllegalStateException("编排器未初始化"));
+        }
+        return orchestratorAgent.execute(conversationId, query);
+    }
+
+    @PostMapping(value = "/orchestrator/file/stream", produces = "text/event-stream;charset=UTF-8")
+    @Operation(summary = "编排器问答（带文件）",
+               description = "接收用户查询和文件附件，由 OrchestratorAgent 决策路由处理")
+    public Flux<String> orchestratorFileStream(
+            @RequestParam(required = true) String query,
+            @RequestParam(required = true) String conversationId,
+            @RequestParam(required = false) String fileId,
+            @RequestParam(required = false) MultipartFile file
+    ) throws Exception {
+        log.info("收到编排器文件请求: query={}, conversationId={}, fileName={}",
+                query, conversationId, file != null ? file.getOriginalFilename() : null);
+
+        byte[] fileBytes = (file != null && !file.isEmpty()) ? file.getBytes() : null;
+        String fileName = file != null ? file.getOriginalFilename() : null;
+
+        return orchestratorAgent.executeWithFile(
+                conversationId, query, fileId, fileName, fileBytes);
     }
 
     @GetMapping(value = "/deep/stream", produces = "text/event-stream;charset=UTF-8")

@@ -232,8 +232,8 @@
 
                     <!-- 输入容器 -->
                     <div class="input-container">
-                        <!-- 文件上传按钮（仅文件问答模式可用） -->
-                        <button v-if="selectedAgent === 'file' && !selectedFile" class="file-btn"
+                        <!-- 文件上传按钮（仅文件问答或编排模式可用） -->
+                        <button v-if="(selectedAgent === 'file' || selectedAgent === 'orchestrator') && !selectedFile" class="file-btn"
                                 :class="{ disabled: isUploading }"
                                 :disabled="isUploading"
                                 @click="$refs.fileInput.click()"
@@ -242,14 +242,14 @@
                         </button>
                         <input ref="fileInput" type="file" @change="handleFileSelect" style="display: none;">
 
-                        <!-- 文件图标（文件问答模式显示） -->
-                        <div v-if="selectedFile && !isUploading" class="input-file-icon" title="文件问答模式">
+                        <!-- 文件图标（文件问答或编排模式显示） -->
+                        <div v-if="selectedFile && !isUploading && (selectedAgent === 'file' || selectedAgent === 'orchestrator')" class="input-file-icon" title="文件问答模式">
                             <i class="fas fa-file-alt"></i>
                         </div>
 
                         <!-- 输入框 -->
                         <textarea v-model="inputMessage"
-                                  :placeholder="selectedAgent === 'file' && selectedFile ? '文件问答模式... (删除文件可切换回对话助手)' : '输入消息... (支持 Markdown，Shift+Enter 换行)'"
+                                  :placeholder="(selectedAgent === 'file' || selectedAgent === 'orchestrator') && selectedFile ? '文件问答模式... (删除文件可切换回对话助手)' : '输入消息... (支持 Markdown，Shift+Enter 换行)'"
                                   @keydown.enter.exact.prevent="sendMessage"
                                   @keydown.enter.shift.exact="inputMessage += '\n'"
                                   rows="1"

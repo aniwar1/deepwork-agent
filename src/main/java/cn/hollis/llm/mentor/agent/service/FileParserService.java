@@ -196,4 +196,86 @@ public class FileParserService {
         }
         return "unknown";
     }
+
+    /**
+     * 通过文件字节数组解析文件（供 A2A Agent 调用）
+     *
+     * @param fileName 文件名（用于判断类型）
+     * @param bytes    文件字节数组
+     * @return 解析后的文本内容
+     */
+    public String parseFileBytes(String fileName, byte[] bytes) {
+        if (bytes == null || bytes.length == 0) {
+            throw new IllegalArgumentException("文件内容为空");
+        }
+
+        String fileType = getFileType(fileName);
+        log.info("A2A 解析文件: fileName={}, type={}, size={} bytes",
+                fileName, fileType, bytes.length);
+
+        try {
+            String content;
+            switch (fileType.toLowerCase()) {
+                case "pdf":
+                    content = parsePdfBytes(bytes);
+                    break;
+                case "docx":
+                    content = parseDocxBytes(bytes);
+                    break;
+                case "doc":
+                    throw new IllegalArgumentException("暂不支持 .doc 格式，请转换为 .docx");
+                case "txt":
+                case "md":
+                case "json":
+                case "xml":
+                case "csv":
+                    content = new String(bytes, StandardCharsets.UTF_8);
+                    break;
+                default:
+                    content = "不支持的文件类型: " + fileType + "\n文件大小: " + bytes.length + " bytes";
+                    break;
+            }
+
+            String truncated = truncateIfNeeded(content);
+            log.info("A2A 文件解析完成: fileName={}, contentLength={}", fileName, content.length());
+            return truncated;
+        } catch (Exception e) {
+            log.error("A2A 文件解析失败: fileName={}", fileName, e);
+            throw new RuntimeException("文件解析失败: " + e.getMessage(), e);
+        }
+    }
+
+    /**
+     * 从字节数组解析 PDF
+     */
+    private String parsePdfBytes(byte[] bytes) throws Exception {
+        try (java.io.InputStream is = new java.io.ByteArrayInputStream(bytes);
+             org.apache.pdfbox.pdmodel.PDDocument document = org.apache.pdfbox.pdmodel.PDDocument.load(is)) {
+            org.apache.pdfbox.text.PDFTextStripper stripper = new org.apache.pdfbox.text.PDFTextStripper();
+            stripper.setSortByPosition(true);
+            String text = stripper.getText(document);
+            log.info("PDF 字节解析完成，页数: {}, 文本长度: {}",
+                    document.getNumberOfPages(), text.length());
+            return text.trim();
+        }
+    }
+
+    /**
+     * 从字节数组解析 DOCX
+     */
+    private String parseDocxBytes(byte[] bytes) throws Exception {
+        try (java.io.InputStream is = new java.io.ByteArrayInputStream(bytes);
+             org.apache.poi.xwpf.usermodel.XWPFDocument document =
+                     new org.apache.poi.xwpf.usermodel.XWPFDocument(is)) {
+            StringBuilder text = new StringBuilder();
+            for (org.apache.poi.xwpf.usermodel.XWPFParagraph paragraph : document.getParagraphs()) {
+                String paraText = paragraph.getText();
+                if (paraText != null && !paraText.trim().isEmpty()) {
+                    text.append(paraText).append("\n");
+                }
+            }
+            log.info("DOCX 字节解析完成，文本长度: {}", text.length());
+            return text.toString().trim();
+        }
+    }
 }
